@@ -7,20 +7,25 @@ const int BUTTON = 13;
 const int BUZZER = 9;
 const int LEDTEST =6;
 
+const int INTERRUPTEUR = 8;
+
+
 int ledState = LOW;
 int buttonState;
 int last_state = LOW;
-int last_time;
-int time;
+unsigned long last_time;
+unsigned long time;
 int line = 0;
 int col = 0;
 String current_word;
 int len_cw =0;
 int space = 1;
-int translate = 0;
+int translate = 1;
 LiquidCrystal lcd(12,11,5,4,3,2);
 
-
+int interrupteurState = LOW;
+int lastInterrupteurState = LOW;
+String lettre;
 
 void setup() {
   
@@ -39,16 +44,52 @@ void setup() {
 }
 
 void loop() {
+  interrupteurState = digitalRead(INTERRUPTEUR);
+
+  if (interrupteurState == HIGH) {
+    mode1();
+
+  } else {
+    mode2();
+    
+  }
+
+
+  if (lastInterrupteurState != interrupteurState) {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    line = 0;
+    col = 0;
+    String current_word;  
+    len_cw=0;
+    space=0;
+    translate=1;
+  }
+  lastInterrupteurState = interrupteurState;
+
+
+}
+void mode2() {
+  digitalWrite(LEDTEST, HIGH);
+
+}
+
+void mode1() {
+  digitalWrite(LEDTEST, LOW);
+
+
   buttonState = digitalRead(BUTTON);
 
   if (buttonState == HIGH) {
+    Serial.println("hello");
     ledState=HIGH;
     tone(BUZZER, 440, 10);
   } else {
     ledState=LOW;
   }
-
   digitalWrite(LED1, ledState);
+
+
   
   if(buttonState == LOW and last_state == HIGH){
     last_state = LOW;
@@ -73,23 +114,23 @@ void loop() {
     space = 0;
     if(len_cw>0){
         delete_word(len_cw, col, line);
-        String lettre = dechiffrage(current_word);
+        lettre = dechiffrage(current_word);
         if(lettre != "") {
           lcd.print(lettre);
           col++;
         }
-        
+        lettre = "";
         current_word ="";
         col-=len_cw;
         len_cw = 0;
         
       }
+      delay(500);
+      
   }
   if(last_state ==LOW and (millis()-last_time)>=3000 and space == 0){
-    pinMode(LEDTEST,HIGH);
     space =1;
     col++;
-    pinMode(LEDTEST,LOW);
   
   }
   if(buttonState == HIGH and last_state ==LOW){
@@ -97,37 +138,51 @@ void loop() {
     last_state = HIGH;
     last_time = millis();
 
+
   }
+  
   if(col>=16){
     col = 0;
-    line++;
-  }
-  if(line>1){
-    line=0;
-    lcd.clear();
+    if(line ==0){
+      line = 1;
+    }
+    else if(line == 1){
+      line = 0;
+      lcd.clear();
+      lcd.setCursor(0,0);
+      line=0;
+      col=0;
+    }
   }
   
   lcd.setCursor(col, line);
 
 }
 
+
+
+
 void delete_word(int len, int col, int line){
   if(len <= col){
-    digitalWrite(LEDTEST,HIGH);
+    for(int i =0; i<= len ;i++){
+      lcd.setCursor(col-i,line);
+      lcd.print(" ");
+    }
     lcd.setCursor(col-len, line);
-    lcd.print("                ");
-    lcd.setCursor(col-len, line);
-    digitalWrite(LEDTEST,LOW);
   }else{
-    lcd.setCursor(0,line);
-    lcd.print("                 ");
-    lcd.setCursor(16-len-col,line-1);
-    lcd.print("                 ");
-    lcd.setCursor(16-len-col,line-1);
+    int l1 = len -col;
+    for(int i = 0; i<=col; i++){
+      lcd.setCursor(col-i,line);
+      lcd.print(" ");
+    }
+    line = (line+1)%2;
+    for(int i = 0; i<=l1;i++){
+      lcd.setCursor(16-i,line);
+      lcd.print(" ");
+    }
+    lcd.setCursor(16-l1,line);
   }  
-
 }
-
 
 String dechiffrage(String current_word){
   String lettre;
@@ -186,7 +241,5 @@ String dechiffrage(String current_word){
   } else{
     lettre = "";
   }
-  
-  
   return lettre;
 }
