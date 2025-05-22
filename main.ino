@@ -24,8 +24,11 @@ int translate = 1;
 LiquidCrystal lcd(12,11,5,4,3,2);
 
 int interrupteurState = LOW;
-int lastInterrupteurState = LOW;
+int lastInterrupteurState = HIGH;
 String lettre;
+String lettreADeviner;
+char alphabet[26]={'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+int nombre_aleatoire;
 
 void setup() {
   
@@ -48,10 +51,8 @@ void loop() {
 
   if (interrupteurState == HIGH) {
     mode1();
-
   } else {
     mode2();
-    
   }
 
 
@@ -60,84 +61,98 @@ void loop() {
     lcd.setCursor(0,0);
     line = 0;
     col = 0;
-    String current_word;  
+    current_word = "";  
     len_cw=0;
     space=0;
     translate=1;
+
+    if (interrupteurState == LOW) {
+      newGameMode2();
+    }
   }
   lastInterrupteurState = interrupteurState;
 
+}
+
+void mode2() {
+
+  
+  //newGameMode2();
+  checkButton();
+  writeLetter();
+
+  if(buttonState == HIGH and last_state ==LOW){
+    translate=0;
+    last_state = HIGH;
+    last_time = millis();
+  }
+
+  if(last_state ==LOW and (millis()-last_time)>=1000 and translate == 0){
+      //addSpace();
+      Serial.println("bojnout");
+      Serial.println(current_word);
+      lettre = dechiffrage(current_word);
+      translate =1;
+      Serial.println(lettre);
+
+      if (lettre == lettreADeviner) {
+        digitalWrite(LEDTEST, HIGH);
+        delay(1000);
+        digitalWrite(LEDTEST, LOW);
+      }
+
+      
+      newGameMode2();
+      
+  }
 
 }
-void mode2() {
-  digitalWrite(LEDTEST, HIGH);
 
+void initGame2() {
+  current_word = "";  
+  len_cw=0;
+  space=0;
+  translate=1;
+}
+
+void newGameMode2() {
+  initGame2();
+
+  nombre_aleatoire=random(0,25); // On créer un nmbre aléaoire entre 1 et 100
+  lettreADeviner = alphabet[nombre_aleatoire];
+  lcd.clear();
+
+  lcd.print("###### ");
+  lcd.print(lettreADeviner);
+  lcd.print(" #######");
+
+  lcd.setCursor(0,1);
+  
 }
 
 void mode1() {
   digitalWrite(LEDTEST, LOW);
 
 
-  buttonState = digitalRead(BUTTON);
+  checkButton();
+  writeLetter();
 
-  if (buttonState == HIGH) {
-    Serial.println("hello");
-    ledState=HIGH;
-    tone(BUZZER, 440, 10);
-  } else {
-    ledState=LOW;
-  }
-  digitalWrite(LED1, ledState);
-
-
-  
-  if(buttonState == LOW and last_state == HIGH){
-    last_state = LOW;
-    translate=0;
-    time = millis() - last_time;
-    last_time = millis();
-    if(time > 5 and time < 150){ //si appuie entre 5 et 150ms écrit un point
-      lcd.print(".");
-      current_word += ".";
-      len_cw ++;
-      col++;
-    }
-    else if(time >=150){ // si appuie supèrieur à 150ms écrit un trait
-      lcd.print("-");
-      current_word += "-";
-      len_cw ++;
-      col++;
-    }
-  }
   if(last_state ==LOW and (millis()-last_time)>=1000 and translate == 0){
-    translate =1;
-    space = 0;
-    if(len_cw>0){
-        delete_word(len_cw, col, line);
-        lettre = dechiffrage(current_word);
-        if(lettre != "") {
-          lcd.print(lettre);
-          col++;
-        }
-        lettre = "";
-        current_word ="";
-        col-=len_cw;
-        len_cw = 0;
-        
-      }
-      delay(500);
+      addSpace();
+    
       
   }
   if(last_state ==LOW and (millis()-last_time)>=3000 and space == 0){
-    space =1;
-    col++;
-  
+    if (line != 0 or col != 0) {
+
+      space =1;
+      col++;
+    }
   }
   if(buttonState == HIGH and last_state ==LOW){
     translate=0;
     last_state = HIGH;
     last_time = millis();
-
 
   }
   
@@ -158,10 +173,55 @@ void mode1() {
   lcd.setCursor(col, line);
 
 }
+void writeLetter() {
+if(buttonState == LOW and last_state == HIGH){
+    last_state = LOW;
+    translate=0;
+    time = millis() - last_time;
+    last_time = millis();
+    if(time > 5 and time < 150){ //si appuie entre 5 et 150ms écrit un point
+      lcd.print(".");
+      current_word += ".";
+      len_cw ++;
+      col++;
+    }
+    else if(time >=150){ // si appuie supèrieur à 150ms écrit un trait
+      lcd.print("-");
+      current_word += "-";
+      len_cw ++;
+      col++;
+    }
+  }
+}
+void checkButton() {
+  buttonState = digitalRead(BUTTON);
 
-
-
-
+  if (buttonState == HIGH) {
+    //Serial.println("hello");
+    ledState=HIGH;
+    tone(BUZZER, 440, 10);
+  } else {
+    ledState=LOW;
+  }
+  digitalWrite(LED1, ledState);
+}
+void addSpace() {
+  translate =1;
+  space = 0;
+  if(len_cw>0){
+          delete_word(len_cw, col, line);
+          lettre = dechiffrage(current_word);
+          if(lettre != "") {
+            lcd.print(lettre);
+            col++;
+          }
+          lettre = "";
+          current_word ="";
+          col-=len_cw;
+          len_cw = 0;
+          
+  }
+}
 void delete_word(int len, int col, int line){
   if(len <= col){
     for(int i =0; i<= len ;i++){
