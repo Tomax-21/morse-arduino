@@ -90,7 +90,7 @@ void mode2() {
 
   if(last_state ==LOW and (millis()-last_time)>=1000 and translate == 0){
       //addSpace();
-      Serial.println("bojnout");
+      Serial.println("bonjour");
       Serial.println(current_word);
       lettre = dechiffrage(current_word);
       translate =1;
@@ -253,22 +253,22 @@ void checkButton() {
 }
 
 void addSpace() {
-  translate =1;
-  space = 0;
-  if(len_cw>0){
-    if(reset == 1){
+  translate =1; //on active la traduction pour le prochain caractère
+  space = 0; //on desactive l'espace pour pas en mettre plusieurs de suite
+  if(len_cw>0){ //si un mot est en cours d'écriture
+    if(reset == 1){ //si le reset est activé
       lcd.clear();
       lcd.setCursor(0,0);
       col = 0;
       line = 0;
     }
     else{
-      delete_word(len_cw, col, line);
+      delete_word(len_cw, col, line); //on supprime le mot atuel
     }
 
-    lettre = dechiffrage(current_word);
-    if(lettre != "") {
-      lcd.print(lettre);
+    lettre = dechiffrage(current_word);//on récupère la lettre correspondante au code morse
+    if(lettre != "") { 
+      lcd.print(lettre); //on affiche la lettre si elle existe
       col++;
     }
     
@@ -285,13 +285,13 @@ void addSpace() {
   }
 }
 void delete_word(int len, int col, int line){
-  if(len <= col){
+  if(len <= col){ //si on ne doit pas gerer de changement de ligne
     for(int i =0; i<= len ;i++){
-      lcd.setCursor(col-i,line);
+      lcd.setCursor(col-i,line); //on supprime les caractère un par un
       lcd.print(" ");
     }
     lcd.setCursor(col-len, line);
-  }else{
+  }else{ //pareil en gérant le changement de ligne
     int l1 = len -col;
     for(int i = 0; i<=col; i++){
       lcd.setCursor(col-i,line);
