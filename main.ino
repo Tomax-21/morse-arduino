@@ -2,54 +2,53 @@
 
 
 
-const int LED1 = 7;
-const int BUTTON = 13;
-const int BUZZER = 9;
-const int LEDTEST =6;
-const int LEDG = 10;
+const int LED1 = 7; // pin de la led qui affiche l'etat du bouton
+const int BUTTON = 13; // pin du bouton bip bip
+const int BUZZER = 9; // pin du buzzer bzzz bzzz
+const int LEDREPONSE =6; // pin de la led qui affiche la reponse dans le mode 1 (pin rouge)
+const int LEDG = 10; // deuxiemem pin de la led rgb
+const int INTERRUPTEUR = 8; // pin qui recupere le status de l'interrupteur
 
-const int INTERRUPTEUR = 8;
 
+int ledState = LOW; // etat de la led
+int buttonState; // etat du bouton
+int last_state = LOW; // etat precedent du bouton
+unsigned long last_time; // temps precedent pour faire un delta temps
+unsigned long time; // temps
+int line = 0; // ligne sur laquelle on affiche sur l'ecran lcd
+int col = 0; // colonne sur laquelle on affiche sur l'ecran lcd
+String current_word; // mot qui s'affiche 
+int len_cw =0; // longueur du mot
+int space = 1; // si on veut mettre un espace
+int translate = 1; // si on veut traduire de morse vers alphabet
+LiquidCrystal lcd(12,11,5,4,3,2); // parametre de l'ecran lcd
 
-int ledState = LOW;
-int buttonState;
-int last_state = LOW;
-unsigned long last_time;
-unsigned long time;
-int line = 0;
-int col = 0;
-String current_word;
-int len_cw =0;
-int space = 1;
-int translate = 1;
-LiquidCrystal lcd(12,11,5,4,3,2);
-
-int interrupteurState = LOW;
-int lastInterrupteurState = HIGH;
-String lettre;
-String lettreADeviner;
+int interrupteurState = LOW; // etat de l'interrupteur
+int lastInterrupteurState = HIGH; // etat precedent de l'interrupteur, pour detecter une variation
+String lettre; // lettre qu'on rentre
+String lettreADeviner; // la lettre que l'on doit deviner
 char alphabet[26]={'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
-int nombre_aleatoire;
-int reset = 0;
+int nombre_aleatoire; // nombre aleatoire pour choisir une lettre
+int reset = 0; // quand on veut reset l'ecran
 
 void setup() {
-  
-  
+  // initialisation des pins
   Serial.begin(9600);
   pinMode(LEDG, OUTPUT);
   pinMode(LED1, OUTPUT);
   pinMode(BUTTON, INPUT);
   pinMode(BUZZER, OUTPUT);
-  pinMode(LEDTEST,OUTPUT);
+  pinMode(LEDREPONSE,OUTPUT);
   lcd.begin(16,2);
   buttonState = digitalRead(BUTTON);
-  last_time = millis();
-  lcd.setCursor(col,line);
+  last_time = millis(); // mise en place du temps
+  lcd.setCursor(col,line); // mise en place du curseur
   
 
 }
 
 void loop() {
+  // on lit l'interrupteur pour savoir dans quel mode on veut jouer
   interrupteurState = digitalRead(INTERRUPTEUR);
 
   if (interrupteurState == HIGH) {
@@ -58,7 +57,7 @@ void loop() {
     mode2();
   }
 
-
+  // on detecte une variation, dans ce cas, on reset toute les données des variables necessaires
   if (lastInterrupteurState != interrupteurState) {
     lcd.clear();
     lcd.setCursor(0,0);
@@ -78,9 +77,8 @@ void loop() {
 }
 
 void mode2() {
+  // deuxieme mode de jeu
 
-  
-  //newGameMode2();
   checkButton();
   writeLetter();
 
@@ -105,10 +103,10 @@ void mode2() {
         digitalWrite(LEDG, LOW);
       }
       else{
-        digitalWrite(LEDTEST, HIGH);
+        digitalWrite(LEDREPONSE, HIGH);
         tone(BUZZER, 100, 700);
         delay(1000);
-        digitalWrite(LEDTEST, LOW);
+        digitalWrite(LEDREPONSE, LOW);
       }
 
       
@@ -119,6 +117,7 @@ void mode2() {
 }
 
 void initGame2() {
+  // on reset les fonctions necessaire pour le bon deroulement de la partie et eviter les interferences si on a deja joué au jeu précédent
   current_word = "";  
   len_cw=0;
   space=0;
@@ -126,12 +125,17 @@ void initGame2() {
 }
 
 void newGameMode2() {
+  // on initialise les valeurs de depart
   initGame2();
+  // mise en place de l'aléatoire
   randomSeed(analogRead(A0));
+
+  // on choisi une lettre aléatoire
   nombre_aleatoire=random(0,25); // On créer un nmbre aléaoire entre 1 et 100
   lettreADeviner = alphabet[nombre_aleatoire];
-  lcd.clear();
 
+  // mise en place de l'interface
+  lcd.clear();
   lcd.print("###### ");
   lcd.print(lettreADeviner);
   lcd.print(" #######");
@@ -141,24 +145,29 @@ void newGameMode2() {
 }
 
 void mode1() {
-  digitalWrite(LEDTEST, LOW);
-
+  //
+  digitalWrite(LEDREPONSE, LOW);
 
   checkButton();
   writeLetter();
 
+  // si le bouton n'est pas appuyé et qu'on a rien fait depuis plus de 1sec et qu'on a pas deja traduit
   if(last_state ==LOW and (millis()-last_time)>=1000 and translate == 0){
+    // on traduit le mot et on incremente le curseur
       addSpace();
     
       
   }
+
+  // si le bouton n'est pas appuyé depuis plus de 3 sec et qu'on a deja traduit, alors on fait un espace
   if(last_state ==LOW and (millis()-last_time)>=3000 and space == 0){
     if (line != 0 or col != 0) {
-
       space =1;
       col++;
     }
   }
+
+  //si on appuis, on met a jour le temps et on dit que translate = 0 ce qui signifie que la prochaine fois qu'on attendra plus de 1sec sans rien faire, alors il faudra traduire
   if(buttonState == HIGH and last_state ==LOW){
     translate=0;
     last_state = HIGH;
@@ -166,6 +175,7 @@ void mode1() {
 
   }
   
+  // si on est au bout de l'ecran, on supprime ce qu'il y a dessus et on redemarre au debut
   if(col>=16){
     col = 0;
     if(line ==0){
@@ -183,15 +193,20 @@ void mode1() {
   lcd.setCursor(col, line);
 
 }
+
 void writeLetter() {
-if(buttonState == LOW and last_state == HIGH){
+  //si on relache le bouton
+  if(buttonState == LOW and last_state == HIGH){
     last_state = LOW;
     translate=0;
+    // on met a jour le temps
     time = millis() - last_time;
     last_time = millis();
-    if(time > 5 and time < 200){ //si appuie entre 5 et 150ms écrit un point
+    // si on a appuyé pendant entre 5 et 175ms, alors on ecrit un . au bon endroit
+    if(time > 5 and time < 175){ //si appuie entre 5 et 150ms écrit un point
       col++;
       if (col ==16 and line ==1){
+        // si on est au bout, de l'ecrant, on revient au debut
         lcd.setCursor(0, 0);
         lcd.print(current_word);
         line = 0;
@@ -199,11 +214,13 @@ if(buttonState == LOW and last_state == HIGH){
         reset = 1;
       }
       
+      // ecriture sur l'ecran
       lcd.print(".");
+      // on met a jour les variables necessaires au traitement
       current_word += ".";
       len_cw ++;
     }
-    else if(time >=150){ // si appuie supèrieur à 150ms écrit un trait
+    else if(time >=175){ // si appuie superieur à 175ms écrit un trait -
       col++;
       if (col ==16 and line ==1){
         lcd.clear();
@@ -220,43 +237,50 @@ if(buttonState == LOW and last_state == HIGH){
   }
 }
 void checkButton() {
+  // cet fonction met à jour la led et le son en synchronisation avec l'etat du bouton
   buttonState = digitalRead(BUTTON);
 
+  // si le bouton est appuyé
   if (buttonState == HIGH) {
+    // on allume la led et on joue un son
     ledState=HIGH;
     tone(BUZZER, 440, 10);
   } else {
+    // sinon on eteint juste la led
     ledState=LOW;
   }
   digitalWrite(LED1, ledState);
 }
+
 void addSpace() {
   translate =1;
   space = 0;
   if(len_cw>0){
-          if(reset == 1){
-            lcd.clear();
-            lcd.setCursor(0,0);
-            col = 0;
-            line = 0;
-          }
-          else{
-          delete_word(len_cw, col, line);
-          }
-          lettre = dechiffrage(current_word);
-          if(lettre != "") {
-            lcd.print(lettre);
-            col++;
-          }
-          lettre = "";
-          current_word ="";
-          if(reset == 1){
-            reset = 0;
-          }
-          else{
-            col-=len_cw;
-          }
-          len_cw = 0;
+    if(reset == 1){
+      lcd.clear();
+      lcd.setCursor(0,0);
+      col = 0;
+      line = 0;
+    }
+    else{
+      delete_word(len_cw, col, line);
+    }
+
+    lettre = dechiffrage(current_word);
+    if(lettre != "") {
+      lcd.print(lettre);
+      col++;
+    }
+    
+    lettre = "";
+    current_word ="";
+    if(reset == 1){
+      reset = 0;
+    }
+    else{
+      col-=len_cw;
+    }
+    len_cw = 0;
           
   }
 }
@@ -283,6 +307,7 @@ void delete_word(int len, int col, int line){
 }
 
 String dechiffrage(String current_word){
+  // on rentre un mot en morse et ça nous retourne la lettre correspondante
   String lettre;
   if (current_word== ".-"){
     lettre = "A";
