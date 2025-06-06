@@ -79,29 +79,37 @@ void loop() {
 void mode2() {
   // deuxieme mode de jeu
 
+  // on verifie les boutons
   checkButton();
+  // et on affiche
   writeLetter();
 
+  // si le bouton passe de high a bas, on fait rien, juste on réinitialise les status
   if(buttonState == HIGH and last_state ==LOW){
     translate=0;
     last_state = HIGH;
     last_time = millis();
   }
 
+  // si le bouton est au niveau bas, c'est a dire qu'on est pas appuyé
+  // si ca fait plus de 1sec, alors on traduit
   if(last_state ==LOW and (millis()-last_time)>=1000 and translate == 0){
       //addSpace();
-      Serial.println("bonjour");
-      Serial.println(current_word);
+
+      //on traduit ce du morse vers l'alphabet le mot qu'on a écrit
       lettre = dechiffrage(current_word);
       translate =1;
-      Serial.println(lettre);
 
+      // si c'est le meme que le mot qu'on doit deviner alors on a gagné
+      // donc : bip aigü + led verte
       if (lettre == lettreADeviner) {
         digitalWrite(LEDG, HIGH);
         tone(BUZZER, 1000, 700);
         delay(1000);
         digitalWrite(LEDG, LOW);
       }
+      // sinon on a perdu
+      // bip grave et led rouge
       else{
         digitalWrite(LEDREPONSE, HIGH);
         tone(BUZZER, 100, 700);
@@ -109,7 +117,7 @@ void mode2() {
         digitalWrite(LEDREPONSE, LOW);
       }
 
-      
+      // puis on demarre une nouvelle partie (nouvelle lettre à deviner)
       newGameMode2();
       
   }
